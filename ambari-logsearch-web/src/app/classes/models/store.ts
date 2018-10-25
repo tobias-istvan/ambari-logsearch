@@ -35,6 +35,7 @@ import { LogsState } from '@app/classes/models/logs-state';
 import { DataAvaibilityStatesModel } from '@app/modules/app-load/models/data-availability-state.model';
 
 import * as auth from '@app/store/reducers/auth.reducers';
+import * as logsFilter from '@app/store/reducers/logs-filter.reducers';
 
 const storeActions = {
     'ARRAY.ADD': 'ADD',
@@ -71,6 +72,7 @@ export interface AppStore {
   logsState: LogsState;
   dataAvailabilityStates: DataAvaibilityStatesModel;
   auth: auth.State;
+  logsFilter: logsFilter.State;
 }
 
 export class ModelService {

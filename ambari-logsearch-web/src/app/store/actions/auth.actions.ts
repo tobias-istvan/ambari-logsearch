@@ -89,8 +89,7 @@ export class HttpAuthorizationErrorResponseAction implements Action {
   constructor(public payload: {response: Response}) {}
 }
 
-export type AuthActions =
-  | LogInAction
+export type AuthActions = LogInAction
   | LogOutAction
   | AuthorizedAction
   | UnauthorizedAction

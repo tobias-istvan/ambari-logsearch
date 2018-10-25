@@ -214,14 +214,12 @@ export class MenuButtonComponent {
 
   /**
    * The main goal if this function is tho handle the item change event on the child dropdown list.
-   * Should update the value and close the dropdown if it is not multiple choice type.
+   * Should update the value and close the dropdown.
    * @param {ListItem} item The selected item(s) from the dropdown list.
    */
   onDropdownItemChange(item: ListItem | ListItem[]) {
     this.updateSelection(item);
-    if (!this.isMultipleChoice) {
-      this.closeDropdown();
-    }
+    this.closeDropdown();
   }
 
   updateSelection(item: ListItem | ListItem[]) {

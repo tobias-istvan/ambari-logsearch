@@ -36,7 +36,9 @@ import {MenuButtonComponent} from '@app/components/menu-button/menu-button.compo
 })
 export class FilterButtonComponent extends MenuButtonComponent implements ControlValueAccessor {
 
-  private selectedItems: ListItem[] = [];
+  get selection(): ListItem[] {
+    return this.subItems && this.subItems.filter((option: ListItem): boolean => option.isChecked);
+  };
 
   private onChange: (fn: any) => void;
 
@@ -44,28 +46,13 @@ export class FilterButtonComponent extends MenuButtonComponent implements Contro
     super();
   }
 
-  get selection(): ListItem[] {
-    return this.selectedItems;
-  }
-
-  set selection(items: ListItem[]) {
-    this.selectedItems = items;
-    if (this.onChange) {
-      this.onChange(items);
-    }
-  }
-
-  updateSelection(updates: ListItem | ListItem[]): void {
+  updateSelection(updates: ListItem | ListItem[], callOnChange = true): void {
     if (updates && (!Array.isArray(updates) || updates.length)) {
       const items: ListItem[] = Array.isArray(updates) ? updates : [updates];
       if (this.isMultipleChoice) {
-        items.forEach((item: ListItem) => {
-          if (this.subItems && this.subItems.length) {
-            const itemToUpdate: ListItem = this.subItems.find((option: ListItem) => this.utils.isEqual(option.value, item.value));
-            if (itemToUpdate) {
-              itemToUpdate.isChecked = item.isChecked;
-            }
-          }
+        this.subItems.forEach((item: ListItem) => {
+          const indexInSelection: number = items.findIndex((option: ListItem) => this.utils.isEqual(option.value, item.value));
+          item.isChecked = indexInSelection > -1;
         });
       } else {
         const selectedItem: ListItem = items.find((item: ListItem) => item.isChecked);
@@ -77,14 +64,23 @@ export class FilterButtonComponent extends MenuButtonComponent implements Contro
       this.subItems.forEach((item: ListItem) => item.isChecked = false);
     }
     const checkedItems = this.subItems.filter((option: ListItem): boolean => option.isChecked);
-    this.selection = checkedItems;
     this.selectItem.emit(checkedItems.map((option: ListItem): any => option.value));
+    if (callOnChange) {
+      this._onChange(this.selection);
+    }
     if (this.dropdownList) {
       this.dropdownList.doItemsCheck();
     }
   }
 
+  private _onChange(value) {
+    if (this.onChange) {
+      this.onChange(value);
+    }
+  }
+
   writeValue(items: ListItem[]) {
+    console.info('writeValue', items);
     let listItems: ListItem[] = [];
     if (items && items.length) {
       listItems = items.map((item: ListItem) => {
@@ -94,7 +90,7 @@ export class FilterButtonComponent extends MenuButtonComponent implements Contro
         };
       });
     }
-    this.updateSelection(listItems);
+    this.updateSelection(listItems, false);
   }
 
   registerOnChange(callback: any): void {

@@ -24,7 +24,6 @@ import {LogsType, SortingType} from '@app/classes/string';
 import {UtilsService} from '@app/services/utils.service';
 import { LogTypeTab } from '@app/classes/models/log-type-tab';
 
-// @ToDo remove duplication, this options are in the LogsContainerService
 export const timeRangeFilterOptions = [{
     label: 'filter.timeRange.7d',
     value: {
@@ -234,45 +233,45 @@ export const timeRangeFilterOptions = [{
     group: 2
   }];
 
+export const defaultFilterSelections = {
+  clusters: [],
+  timeRange: {
+    value: {
+      type: 'LAST',
+      unit: 'h',
+      interval: 1
+    },
+    label: 'filter.timeRange.1hr'
+  },
+  components: [],
+  levels: [],
+  hosts: [],
+  auditLogsSorting: {
+    label: 'sorting.time.desc',
+    value: {
+      key: 'evtTime',
+      type: 'desc'
+    }
+  },
+  serviceLogsSorting: {
+    label: 'sorting.time.desc',
+    value: {
+      key: 'logtime',
+      type: 'desc'
+    }
+  },
+  pageSize: [{
+    label: '100',
+    value: '100'
+  }],
+  page: 0,
+  query: [],
+  users: [],
+  isUndoOrRedo: false
+};
+
 @Injectable()
 export class LogsFilteringUtilsService {
-
-  readonly defaultFilterSelections = {
-    clusters: [],
-    timeRange: {
-      value: {
-        type: 'LAST',
-        unit: 'h',
-        interval: 1
-      },
-      label: 'filter.timeRange.1hr'
-    },
-    components: [],
-    levels: [],
-    hosts: [],
-    auditLogsSorting: {
-      label: 'sorting.time.desc',
-      value: {
-        key: 'evtTime',
-        type: 'desc'
-      }
-    },
-    serviceLogsSorting: {
-      label: 'sorting.time.desc',
-      value: {
-        key: 'logtime',
-        type: 'desc'
-      }
-    },
-    pageSize: [{
-      label: '100',
-      value: '100'
-    }],
-    page: 0,
-    query: [],
-    users: [],
-    isUndoOrRedo: false
-  };
 
   constructor(
     private utilsService: UtilsService
@@ -393,7 +392,11 @@ export class LogsFilteringUtilsService {
     }
   }
 
-  getParamsFromActiveFilter(activeFilter: any, activeLogsType: LogsType): {[key: string]: string} {
+  getUrlParamsFromFilterStateObject(filter, logsType: LogsType) {
+
+  }
+
+  getUrlParamsFromFormValues(activeFilter: any, activeLogsType: LogsType): {[key: string]: string} {
     const {...filters} = activeFilter;
     delete filters.isUndoOrRedo;
     return Object.keys(filters).reduce((currentParams, key) => {
@@ -474,7 +477,7 @@ export class LogsFilteringUtilsService {
     });
   }
 
-  getFilterFromParams(params: {[key: string]: string}, activeLogsType: LogsType): {[key: string]: any} {
+  getFormValuesFromUrlParams(params: {[key: string]: string}, activeLogsType: LogsType): {[key: string]: any} {
     const filter: {[key: string]: any} = {};
     const paramsKeys: string[] = Object.keys(params);
     return paramsKeys.reduce((currentFilter, key) => {
@@ -551,7 +554,7 @@ export class LogsFilteringUtilsService {
 
   getNavigationForTab(tab: LogTypeTab): any[] {
     const logsType = tab.appState && tab.appState.activeLogsType;
-    return [tab.id, this.getParamsFromActiveFilter(tab.activeFilters || {}, logsType)];
+    return [tab.id, this.getUrlParamsFromFormValues(tab.activeFilters || {}, logsType)];
   }
 
 }

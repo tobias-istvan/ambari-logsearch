@@ -116,6 +116,7 @@ import {LoginScreenGuardService} from '@app/services/login-screen-guard.service'
 
 import { AuthEffects } from '@app/store/effects/auth.effects';
 import { NotificationEffects } from '@app/store/effects/notification.effects';
+import { LogsFilterEffects } from '@app/store/effects/logs-filter.effects';
 
 @NgModule({
   declarations: [
@@ -191,7 +192,8 @@ import { NotificationEffects } from '@app/store/effects/notification.effects';
     AppRoutingModule,
 
     EffectsModule.run(AuthEffects),
-    EffectsModule.run(NotificationEffects)
+    EffectsModule.run(NotificationEffects),
+    EffectsModule.run(LogsFilterEffects)
 
   ],
   providers: [

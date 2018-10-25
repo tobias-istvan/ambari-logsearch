@@ -59,7 +59,7 @@ import { NodeItem } from '@app/classes/models/node-item';
 import { CommonEntry } from '@app/classes/models/common-entry';
 import { ClusterSelectionService } from '@app/services/storage/cluster-selection.service';
 import { Router } from '@angular/router';
-import { LogsFilteringUtilsService } from '@app/services/logs-filtering-utils.service';
+import { LogsFilteringUtilsService, defaultFilterSelections } from '@app/services/logs-filtering-utils.service';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { LogsStateService } from '@app/services/storage/logs-state.service';
 import { LogLevelComponent } from '@app/components/log-level/log-level.component';
@@ -68,6 +68,7 @@ import { NotificationService, NotificationType } from '@modules/shared/services/
 import { Store } from '@ngrx/store';
 import { AppStore } from '@app/classes/models/store';
 import { isAuthorizedSelector } from '@app/store/selectors/auth.selectors';
+import { createLogsTypeSelector } from '@app/store/selectors/logs-filter.selectors';
 
 @Injectable()
 export class LogsContainerService {
@@ -118,19 +119,19 @@ export class LogsContainerService {
     clusters: {
       label: 'filter.clusters',
       options: [],
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.clusters,
+      defaultSelection: defaultFilterSelections.clusters,
       fieldName: 'cluster'
     },
     timeRange: { // @ToDo remove duplication, this options are in the LogsFilteringUtilsService too
       label: 'logs.duration',
       options: this.logsFilteringUtilsService.getTimeRandeOptionsByGroup(),
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.timeRange
+      defaultSelection: defaultFilterSelections.timeRange
     },
     components: {
       label: 'filter.components',
       iconClass: 'fa fa-cubes',
       options: [],
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.components,
+      defaultSelection: defaultFilterSelections.components,
       fieldName: 'type'
     },
     levels: {
@@ -145,14 +146,14 @@ export class LogsContainerService {
           iconClass: `fa ${LogLevelComponent.classMap[cssClass]}`
         };
       }),
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.levels,
+      defaultSelection: defaultFilterSelections.levels,
       fieldName: 'level'
     },
     hosts: {
       label: 'filter.hosts',
       iconClass: 'fa fa-server',
       options: [],
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.hosts,
+      defaultSelection: defaultFilterSelections.hosts,
       fieldName: 'host'
     },
     auditLogsSorting: {
@@ -173,7 +174,7 @@ export class LogsContainerService {
           }
         }
       ],
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.auditLogsSorting
+      defaultSelection: defaultFilterSelections.auditLogsSorting
     },
     serviceLogsSorting: {
       label: 'sorting.title',
@@ -193,7 +194,7 @@ export class LogsContainerService {
           }
         }
       ],
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.serviceLogsSorting
+      defaultSelection: defaultFilterSelections.serviceLogsSorting
     },
     pageSize: {
       label: 'pagination.title',
@@ -203,23 +204,23 @@ export class LogsContainerService {
           value: option
         };
       }),
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.pageSize
+      defaultSelection: defaultFilterSelections.pageSize
     },
     page: {
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.page
+      defaultSelection: defaultFilterSelections.page
     },
     query: {
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.query
+      defaultSelection: defaultFilterSelections.query
     },
     users: {
       label: 'filter.users',
       iconClass: 'fa fa-server',
       options: [],
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.users,
+      defaultSelection: defaultFilterSelections.users,
       fieldName: 'reqUser'
     },
     isUndoOrRedo: {
-      defaultSelection: this.logsFilteringUtilsService.defaultFilterSelections.isUndoOrRedo
+      defaultSelection: defaultFilterSelections.isUndoOrRedo
     }
   };
 
@@ -392,7 +393,7 @@ export class LogsContainerService {
       const item = {
         [key]: formControl
       };
-      formControl.setValue(this.logsFilteringUtilsService.defaultFilterSelections[key]);
+      formControl.setValue(defaultFilterSelections[key]);
       return Object.assign(currentObject, item);
     }, {});
     this.filtersForm = new FormGroup(formItems);
@@ -425,7 +426,7 @@ export class LogsContainerService {
       });
     });
 
-    this.filtersForm.valueChanges.filter(() => !this.filtersFormSyncInProgress.getValue()).subscribe(this.onFiltersFormValueChange);
+    // this.filtersForm.valueChanges.filter(() => !this.filtersFormSyncInProgress.getValue()).subscribe(this.onFiltersFormValueChange);
 
     this.auditLogsSource.subscribe((logs: AuditLog[]): void => {
       const userNames = logs.map((log: AuditLog): string => log.reqUser);
@@ -453,20 +454,21 @@ export class LogsContainerService {
   /**
    * Update the filters form with the given filters.
    * @param filters {object}
+   * @param options {onlySelf?: boolean; emitEvent?: boolean;} Options object for the `reset` method.
    */
-  resetFiltersForms(filters): void {
+  resetFiltersForms(filters, options: {
+    onlySelf?: boolean;
+    emitEvent?: boolean;
+  } = {onlySelf: false, emitEvent: true}): void {
     this.appState.getParameter('baseDataSetState')
     // do it only when the base data set is available so that the dropdowns can set the selections
       .filter((dataSetState: DataAvailabilityValues) => dataSetState === DataAvailabilityValues.AVAILABLE)
       .first()
       .subscribe(() => {
+        console.info('Reseting form: ', filters);
         this.filtersFormSyncInProgress.next(true);
-        this.filtersForm.reset(
-          {...this.logsFilteringUtilsService.defaultFilterSelections, ...filters},
-          {emitEvent: false}
-        );
+        this.filtersForm.reset(filters, options);
         this.filtersFormSyncInProgress.next(false);
-        this.onFiltersFormValueChange();
       });
   }
 
@@ -697,6 +699,11 @@ export class LogsContainerService {
   ): HomogeneousObject<string> {
     const params = {};
     const values = this.filtersForm.getRawValue();
+    this.store.select(createLogsTypeSelector(logsType)).first().subscribe((filters) => {
+      if (filters) {
+        // console.info(this.logsFilteringUtilsService.getFormValuesFromUrlParams(filters, logsType));
+      }
+    });
     this.logsTypeMap[logsType][filtersMapName].forEach((key: string): void => {
       const inputValue = values[key];
       const paramNames = this.filtersMapping[key];
@@ -883,7 +890,7 @@ export class LogsContainerService {
     const keys = Object.keys(this.filters).filter((key: string): boolean => itemsList.indexOf(key) > -1);
     return keys.reduce((currentObject: object, key: string): object => {
       return Object.assign(currentObject, {
-        [key]: this.logsFilteringUtilsService.defaultFilterSelections[key]
+        [key]: defaultFilterSelections[key]
       });
     }, {});
   }
